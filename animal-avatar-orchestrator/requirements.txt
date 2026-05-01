@@ -6,3 +6,5 @@ transformers>=4.30.0
 accelerate>=0.21.0
 Pillow>=10.0.0
 python-dotenv>=1.0.0
+imageio>=2.30.0
+imageio-ffmpeg>=0.4.9

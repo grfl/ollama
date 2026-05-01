@@ -3,298 +3,551 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Animal Avatar Generator</title>
+  <title>Animal Studio</title>
   <style>
+    :root {
+      --bg:       #0f0f11;
+      --surface:  #1a1a22;
+      --border:   #2a2a38;
+      --border-hi:#3e3e56;
+      --accent:   #7c6ff7;
+      --accent-hi:#9d93ff;
+      --accent-lo:#7c6ff718;
+      --text:     #e8e8f0;
+      --muted:    #6a6a8a;
+      --error-bg: #1f0d0d;
+      --error-bd: #5a1e1e;
+      --error-tx: #f08080;
+      --radius:   14px;
+      --radius-sm:8px;
+    }
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Courier New', 'Lucida Console', monospace;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
-      background: #0f0f11;
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      color: #e8e8f0;
+      justify-content: flex-start;
+      padding: 40px 16px 80px;
     }
 
-    .card {
+    /* Subtle noise overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
       width: 100%;
-      max-width: 480px;
-      background: #1a1a22;
-      border: 1px solid #2a2a38;
-      border-radius: 16px;
-      padding: 36px 32px;
+      max-width: 520px;
     }
 
-    h1 {
-      font-size: 1.4rem;
-      font-weight: 600;
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+      animation: fadeDown 0.5s ease both;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
       margin-bottom: 6px;
-      color: #fff;
     }
 
-    .subtitle {
-      font-size: 0.85rem;
-      color: #7878a0;
+    .logo-icon {
+      width: 34px; height: 34px;
+      background: var(--accent);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 0 18px #7c6ff740;
+    }
+
+    .logo-text {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: #fff;
+      font-family: 'Courier New', monospace;
+    }
+
+    .logo-text span { color: var(--accent); }
+
+    .tagline {
+      font-size: 0.78rem;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    /* Card */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 28px 32px;
+      animation: fadeUp 0.5s ease 0.1s both;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 40px;
+      padding: 4px;
       margin-bottom: 28px;
     }
 
+    .tab {
+      flex: 1;
+      padding: 9px 0;
+      text-align: center;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border: none;
+      border-radius: 36px;
+      cursor: pointer;
+      transition: background 0.22s, color 0.22s, box-shadow 0.22s;
+      background: transparent;
+      color: var(--muted);
+      font-family: inherit;
+    }
+
+    .tab.active {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 14px #7c6ff750;
+    }
+
+    .tab:hover:not(.active) { color: var(--text); }
+
+    /* Panel */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* --- Avatar panel --- */
     .drop-zone {
-      border: 2px dashed #3a3a52;
-      border-radius: 12px;
-      padding: 40px 20px;
+      position: relative;
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 38px 20px;
       text-align: center;
       cursor: pointer;
       transition: border-color 0.2s, background 0.2s;
-      position: relative;
     }
 
     .drop-zone:hover, .drop-zone.drag-over {
-      border-color: #7c6ff7;
-      background: #1e1e2e;
+      border-color: var(--accent);
+      background: var(--accent-lo);
     }
 
     .drop-zone input[type="file"] {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      cursor: pointer;
-      width: 100%;
-      height: 100%;
+      position: absolute; inset: 0; opacity: 0;
+      cursor: pointer; width: 100%; height: 100%;
     }
 
-    .drop-icon { font-size: 2.2rem; margin-bottom: 10px; }
+    .drop-icon { font-size: 2rem; margin-bottom: 10px; line-height: 1; }
 
     .drop-label {
-      font-size: 0.9rem;
-      color: #9898b8;
-    }
-
-    .drop-label span { color: #7c6ff7; text-decoration: underline; }
-
-    #preview-wrap {
-      display: none;
-      margin-top: 20px;
-      border-radius: 10px;
-      overflow: hidden;
-      border: 1px solid #2a2a38;
-    }
-
-    #preview-wrap img {
-      width: 100%;
-      display: block;
-      max-height: 260px;
-      object-fit: cover;
-    }
-
-    .btn {
-      display: block;
-      width: 100%;
-      margin-top: 20px;
-      padding: 13px;
-      background: #7c6ff7;
-      color: #fff;
-      font-size: 0.95rem;
-      font-weight: 600;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: background 0.2s, opacity 0.2s;
-    }
-
-    .btn:hover:not(:disabled) { background: #6a5de0; }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    /* Spinner */
-    .spinner-wrap {
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      gap: 14px;
-      margin-top: 28px;
-    }
-
-    .spinner {
-      width: 44px; height: 44px;
-      border: 4px solid #2a2a38;
-      border-top-color: #7c6ff7;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .spinner-label { font-size: 0.85rem; color: #7878a0; }
-
-    /* Result */
-    #result {
-      display: none;
-      margin-top: 28px;
-    }
-
-    #result .section-title {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #7878a0;
-      margin-bottom: 8px;
-    }
-
-    #result .description-box {
-      background: #12121a;
-      border: 1px solid #2a2a38;
-      border-radius: 8px;
-      padding: 12px 14px;
-      font-size: 0.88rem;
-      color: #c8c8e0;
-      margin-bottom: 16px;
+      font-size: 0.82rem;
+      color: var(--muted);
       line-height: 1.5;
     }
 
-    #result img {
-      width: 100%;
-      border-radius: 10px;
-      border: 1px solid #2a2a38;
-      display: block;
+    .drop-label em {
+      font-style: normal;
+      color: var(--accent);
+      text-decoration: underline;
     }
 
-    .download-btn {
-      display: block;
+    #preview-wrap {
+      display: none;
+      margin-top: 16px;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    #preview-wrap img {
+      width: 100%; display: block;
+      max-height: 240px; object-fit: cover;
+    }
+
+    /* --- Video panel --- */
+    .prompt-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .prompt-area {
       width: 100%;
-      margin-top: 12px;
-      padding: 11px;
-      background: transparent;
-      color: #7c6ff7;
-      font-size: 0.9rem;
-      font-weight: 600;
-      border: 1px solid #7c6ff7;
-      border-radius: 10px;
+      min-height: 120px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.88rem;
+      line-height: 1.6;
+      padding: 14px 16px;
+      resize: vertical;
+      transition: border-color 0.2s;
+      outline: none;
+    }
+
+    .prompt-area::placeholder { color: var(--muted); }
+    .prompt-area:focus { border-color: var(--accent); }
+
+    .video-hint {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+
+    /* Generate button */
+    .btn {
+      display: block; width: 100%;
+      margin-top: 18px; padding: 13px;
+      background: var(--accent);
+      color: #fff; font-size: 0.85rem;
+      font-weight: 700; font-family: inherit;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      border: none; border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background 0.2s, box-shadow 0.2s, opacity 0.2s;
+      box-shadow: 0 0 0 transparent;
+    }
+
+    .btn:hover:not(:disabled) {
+      background: var(--accent-hi);
+      box-shadow: 0 0 18px #7c6ff755;
+    }
+
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Spinner */
+    .spinner-wrap {
+      display: none; flex-direction: column;
+      align-items: center; gap: 14px; margin-top: 28px;
+    }
+
+    .spinner-ring {
+      width: 40px; height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+
+    .spinner-label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
       text-align: center;
-      text-decoration: none;
+    }
+
+    /* Error */
+    .error-box {
+      display: none; margin-top: 20px;
+      background: var(--error-bg);
+      border: 1px solid var(--error-bd);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      font-size: 0.82rem;
+      color: var(--error-tx);
+      line-height: 1.5;
+    }
+
+    /* Result shared */
+    .result-wrap { display: none; margin-top: 24px; }
+
+    .result-label {
+      font-size: 0.7rem; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--muted);
+      margin-bottom: 7px;
+    }
+
+    .desc-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 11px 14px;
+      font-size: 0.85rem; color: #c4c4dc;
+      line-height: 1.6; margin-bottom: 16px;
+    }
+
+    .result-wrap img, .result-wrap video {
+      width: 100%; display: block;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+
+    .result-wrap video { background: #000; }
+
+    .dl-btn {
+      display: block; width: 100%; margin-top: 12px;
+      padding: 11px; text-align: center;
+      font-family: inherit; font-size: 0.82rem;
+      font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; text-decoration: none;
+      color: var(--accent);
+      background: transparent;
+      border: 1px solid var(--accent);
+      border-radius: var(--radius-sm);
       cursor: pointer;
       transition: background 0.2s;
     }
 
-    .download-btn:hover { background: #7c6ff71a; }
+    .dl-btn:hover { background: var(--accent-lo); }
 
-    .error-box {
-      display: none;
-      margin-top: 20px;
-      background: #2a1212;
-      border: 1px solid #5a2020;
-      border-radius: 8px;
-      padding: 12px 14px;
-      font-size: 0.85rem;
-      color: #f08080;
+    /* Divider */
+    .sep {
+      height: 1px; background: var(--border);
+      margin: 24px 0;
     }
+
+    /* Animations */
+    @keyframes spin    { to { transform: rotate(360deg); } }
+    @keyframes fadeUp  { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+    @keyframes fadeDown{ from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:none; } }
   </style>
 </head>
 <body>
+<div class="wrap">
+
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">🐾</div>
+      <div class="logo-text">animal<span>studio</span></div>
+    </div>
+    <div class="tagline">local · LLaVA + Stable Diffusion + CogVideoX</div>
+  </div>
+
   <div class="card">
-    <h1>Animal Avatar Generator</h1>
-    <p class="subtitle">Upload a photo of an animal and get a stylized avatar.</p>
-
-    <div class="drop-zone" id="drop-zone">
-      <input type="file" id="file-input" accept="image/*" />
-      <div class="drop-icon">🐾</div>
-      <div class="drop-label">Drop your image here or <span>browse</span></div>
+    <!-- Tab switcher -->
+    <div class="tabs" role="tablist">
+      <button class="tab active" id="tab-avatar" role="tab" aria-selected="true"  onclick="switchTab('avatar')">Avatar</button>
+      <button class="tab"        id="tab-video"  role="tab" aria-selected="false" onclick="switchTab('video')">Video</button>
     </div>
 
-    <div id="preview-wrap">
-      <img id="preview-img" src="" alt="Preview" />
+    <!-- ── Avatar panel ── -->
+    <div class="panel active" id="panel-avatar">
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" id="file-input" accept="image/*" />
+        <div class="drop-icon">🖼</div>
+        <div class="drop-label">Drop an animal photo here<br>or <em>browse your files</em></div>
+      </div>
+
+      <div id="preview-wrap">
+        <img id="preview-img" src="" alt="Preview" />
+      </div>
+
+      <button class="btn" id="avatar-btn" disabled onclick="generateAvatar()">
+        Generate Avatar
+      </button>
     </div>
 
-    <button class="btn" id="generate-btn" disabled>Generate Avatar</button>
+    <!-- ── Video panel ── -->
+    <div class="panel" id="panel-video">
+      <div class="prompt-label">Text prompt</div>
+      <textarea class="prompt-area" id="prompt-input"
+        placeholder="A fox running through a snowy forest at dawn, cinematic lighting, slow motion..."
+        rows="5"
+      ></textarea>
+      <div class="video-hint">
+        Model: CogVideoX-2b &nbsp;·&nbsp; Output: 5 s MP4 &nbsp;·&nbsp; Est. time: ~2 min on RTX 4070
+      </div>
 
+      <button class="btn" id="video-btn" onclick="generateVideo()">
+        Generate Video
+      </button>
+    </div>
+
+    <!-- ── Shared: spinner, error, result ── -->
     <div class="spinner-wrap" id="spinner">
-      <div class="spinner"></div>
-      <div class="spinner-label" id="spinner-label">Analyzing image...</div>
+      <div class="spinner-ring"></div>
+      <div class="spinner-label" id="spinner-label">Working...</div>
     </div>
 
     <div class="error-box" id="error-box"></div>
 
-    <div id="result">
-      <div class="section-title">Detected animal</div>
-      <div class="description-box" id="description"></div>
-      <div class="section-title">Your avatar</div>
-      <img id="result-img" src="" alt="Generated avatar" />
-      <a class="download-btn" id="download-link" href="" download>Download Avatar</a>
+    <!-- Avatar result -->
+    <div class="result-wrap" id="avatar-result">
+      <div class="sep"></div>
+      <div class="result-label">Detected animal</div>
+      <div class="desc-box" id="desc-box"></div>
+      <div class="result-label">Generated avatar</div>
+      <img id="result-img" src="" alt="Avatar" />
+      <a class="dl-btn" id="avatar-dl" href="" download>↓ Download Avatar</a>
+    </div>
+
+    <!-- Video result -->
+    <div class="result-wrap" id="video-result">
+      <div class="sep"></div>
+      <div class="result-label">Generated video</div>
+      <video id="result-video" controls autoplay loop muted playsinline></video>
+      <a class="dl-btn" id="video-dl" href="" download>↓ Download Video</a>
     </div>
   </div>
 
-  <script>
-    const fileInput   = document.getElementById('file-input');
-    const dropZone    = document.getElementById('drop-zone');
-    const previewWrap = document.getElementById('preview-wrap');
-    const previewImg  = document.getElementById('preview-img');
-    const generateBtn = document.getElementById('generate-btn');
-    const spinner     = document.getElementById('spinner');
-    const spinnerLabel= document.getElementById('spinner-label');
-    const result      = document.getElementById('result');
-    const errorBox    = document.getElementById('error-box');
-    const description = document.getElementById('description');
-    const resultImg   = document.getElementById('result-img');
-    const downloadLink= document.getElementById('download-link');
+</div>
 
-    let selectedFile = null;
+<script>
+  // ── State ──────────────────────────────────────────────────
+  let currentTab = 'avatar';
+  let selectedFile = null;
 
-    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-    dropZone.addEventListener('drop', e => {
-      e.preventDefault();
-      dropZone.classList.remove('drag-over');
-      const file = e.dataTransfer.files[0];
-      if (file) setFile(file);
+  // ── Tab switching ───────────────────────────────────────────
+  function switchTab(tab) {
+    if (tab === currentTab) return;
+    currentTab = tab;
+
+    document.querySelectorAll('.tab').forEach(t => {
+      const active = t.id === `tab-${tab}`;
+      t.classList.toggle('active', active);
+      t.setAttribute('aria-selected', active);
     });
 
-    fileInput.addEventListener('change', () => {
-      if (fileInput.files[0]) setFile(fileInput.files[0]);
+    document.querySelectorAll('.panel').forEach(p => {
+      p.classList.toggle('active', p.id === `panel-${tab}`);
     });
 
-    function setFile(file) {
-      selectedFile = file;
-      previewImg.src = URL.createObjectURL(file);
-      previewWrap.style.display = 'block';
-      generateBtn.disabled = false;
-      result.style.display = 'none';
-      errorBox.style.display = 'none';
+    resetShared();
+  }
+
+  function resetShared() {
+    hide('spinner');
+    hide('error-box');
+    hide('avatar-result');
+    hide('video-result');
+  }
+
+  // ── Avatar ──────────────────────────────────────────────────
+  const dropZone  = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('file-input');
+
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', () => { if (fileInput.files[0]) setFile(fileInput.files[0]); });
+
+  function setFile(file) {
+    selectedFile = file;
+    const preview = document.getElementById('preview-img');
+    preview.src = URL.createObjectURL(file);
+    show('preview-wrap');
+    document.getElementById('avatar-btn').disabled = false;
+    resetShared();
+  }
+
+  async function generateAvatar() {
+    if (!selectedFile) return;
+    setLoading(true, 'avatar');
+    document.getElementById('avatar-btn').disabled = true;
+    resetShared();
+    showEl('spinner');
+
+    let labelTimer = setTimeout(() => {
+      document.getElementById('spinner-label').textContent = 'Generating with Stable Diffusion...';
+    }, 5000);
+    document.getElementById('spinner-label').textContent = 'Analyzing with LLaVA...';
+
+    const form = new FormData();
+    form.append('image', selectedFile);
+
+    try {
+      const res  = await fetch('/generate', { method: 'POST', body: form });
+      const data = await res.json();
+      if (!res.ok) { showError(data.error || 'Something went wrong.'); return; }
+
+      document.getElementById('desc-box').textContent  = data.description;
+      document.getElementById('result-img').src        = data.image_url;
+      document.getElementById('avatar-dl').href        = data.image_url;
+      showEl('avatar-result');
+    } catch (err) {
+      showError('Network error: ' + err.message);
+    } finally {
+      clearTimeout(labelTimer);
+      hide('spinner');
+      setLoading(false, 'avatar');
+      document.getElementById('avatar-btn').disabled = false;
     }
+  }
 
-    generateBtn.addEventListener('click', async () => {
-      if (!selectedFile) return;
+  // ── Video ───────────────────────────────────────────────────
+  async function generateVideo() {
+    const prompt = document.getElementById('prompt-input').value.trim();
+    if (!prompt) {
+      showError('Please enter a prompt before generating.'); return;
+    }
+    setLoading(true, 'video');
+    document.getElementById('video-btn').disabled = true;
+    resetShared();
+    showEl('spinner');
+    document.getElementById('spinner-label').textContent = 'Generating with CogVideoX-2b... (this takes ~2 min)';
 
-      generateBtn.disabled = true;
-      spinner.style.display = 'flex';
-      spinnerLabel.textContent = 'Analyzing image with LLaVA...';
-      result.style.display = 'none';
-      errorBox.style.display = 'none';
+    try {
+      const res  = await fetch('/generate-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      });
+      const data = await res.json();
+      if (!res.ok) { showError(data.error || 'Something went wrong.'); return; }
 
-      const formData = new FormData();
-      formData.append('image', selectedFile);
+      const vid = document.getElementById('result-video');
+      vid.src = data.video_url;
+      document.getElementById('video-dl').href = data.video_url;
+      showEl('video-result');
+      vid.play().catch(() => {});
+    } catch (err) {
+      showError('Network error: ' + err.message);
+    } finally {
+      hide('spinner');
+      setLoading(false, 'video');
+      document.getElementById('video-btn').disabled = false;
+    }
+  }
 
-      try {
-        setTimeout(() => { spinnerLabel.textContent = 'Generating avatar with Stable Diffusion...'; }, 4000);
+  // ── Helpers ─────────────────────────────────────────────────
+  function show(id)   { document.getElementById(id).style.display = 'flex'; }
+  function showEl(id) { document.getElementById(id).style.display = 'block'; }
+  function hide(id)   { document.getElementById(id).style.display = 'none'; }
 
-        const res = await fetch('/generate', { method: 'POST', body: formData });
-        const data = await res.json();
+  function showError(msg) {
+    const box = document.getElementById('error-box');
+    box.textContent = msg;
+    box.style.display = 'block';
+    hide('spinner');
+  }
 
-        if (!res.ok) {
-          errorBox.textContent = data.error || 'Something went wrong.';
-          errorBox.style.display = 'block';
-        } else {
-          description.textContent = data.description;
-          resultImg.src = data.image_url;
-          downloadLink.href = data.image_url;
-          result.style.display = 'block';
-        }
-      } catch (err) {
-        errorBox.textContent = 'Network error: ' + err.message;
-        errorBox.style.display = 'block';
-      } finally {
-        spinner.style.display = 'none';
-        generateBtn.disabled = false;
-      }
-    });
-  </script>
+  function setLoading(on, tab) {
+    if (tab === 'avatar') document.getElementById('avatar-btn').disabled = on;
+    if (tab === 'video')  document.getElementById('video-btn').disabled  = on;
+  }
+</script>
 </body>
 </html>
