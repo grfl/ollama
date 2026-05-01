@@ -1,0 +1,5 @@
+agentes_env/
+__pycache__/
+*.png
+*.jpg
+.env
