@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Animal Avatar Generator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0f0f11;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      color: #e8e8f0;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 480px;
+      background: #1a1a22;
+      border: 1px solid #2a2a38;
+      border-radius: 16px;
+      padding: 36px 32px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #fff;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: #7878a0;
+      margin-bottom: 28px;
+    }
+
+    .drop-zone {
+      border: 2px dashed #3a3a52;
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: #7c6ff7;
+      background: #1e1e2e;
+    }
+
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .drop-icon { font-size: 2.2rem; margin-bottom: 10px; }
+
+    .drop-label {
+      font-size: 0.9rem;
+      color: #9898b8;
+    }
+
+    .drop-label span { color: #7c6ff7; text-decoration: underline; }
+
+    #preview-wrap {
+      display: none;
+      margin-top: 20px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid #2a2a38;
+    }
+
+    #preview-wrap img {
+      width: 100%;
+      display: block;
+      max-height: 260px;
+      object-fit: cover;
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      margin-top: 20px;
+      padding: 13px;
+      background: #7c6ff7;
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+    }
+
+    .btn:hover:not(:disabled) { background: #6a5de0; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Spinner */
+    .spinner-wrap {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      margin-top: 28px;
+    }
+
+    .spinner {
+      width: 44px; height: 44px;
+      border: 4px solid #2a2a38;
+      border-top-color: #7c6ff7;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .spinner-label { font-size: 0.85rem; color: #7878a0; }
+
+    /* Result */
+    #result {
+      display: none;
+      margin-top: 28px;
+    }
+
+    #result .section-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #7878a0;
+      margin-bottom: 8px;
+    }
+
+    #result .description-box {
+      background: #12121a;
+      border: 1px solid #2a2a38;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 0.88rem;
+      color: #c8c8e0;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    #result img {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid #2a2a38;
+      display: block;
+    }
+
+    .download-btn {
+      display: block;
+      width: 100%;
+      margin-top: 12px;
+      padding: 11px;
+      background: transparent;
+      color: #7c6ff7;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border: 1px solid #7c6ff7;
+      border-radius: 10px;
+      text-align: center;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .download-btn:hover { background: #7c6ff71a; }
+
+    .error-box {
+      display: none;
+      margin-top: 20px;
+      background: #2a1212;
+      border: 1px solid #5a2020;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 0.85rem;
+      color: #f08080;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Animal Avatar Generator</h1>
+    <p class="subtitle">Upload a photo of an animal and get a stylized avatar.</p>
+
+    <div class="drop-zone" id="drop-zone">
+      <input type="file" id="file-input" accept="image/*" />
+      <div class="drop-icon">🐾</div>
+      <div class="drop-label">Drop your image here or <span>browse</span></div>
+    </div>
+
+    <div id="preview-wrap">
+      <img id="preview-img" src="" alt="Preview" />
+    </div>
+
+    <button class="btn" id="generate-btn" disabled>Generate Avatar</button>
+
+    <div class="spinner-wrap" id="spinner">
+      <div class="spinner"></div>
+      <div class="spinner-label" id="spinner-label">Analyzing image...</div>
+    </div>
+
+    <div class="error-box" id="error-box"></div>
+
+    <div id="result">
+      <div class="section-title">Detected animal</div>
+      <div class="description-box" id="description"></div>
+      <div class="section-title">Your avatar</div>
+      <img id="result-img" src="" alt="Generated avatar" />
+      <a class="download-btn" id="download-link" href="" download>Download Avatar</a>
+    </div>
+  </div>
+
+  <script>
+    const fileInput   = document.getElementById('file-input');
+    const dropZone    = document.getElementById('drop-zone');
+    const previewWrap = document.getElementById('preview-wrap');
+    const previewImg  = document.getElementById('preview-img');
+    const generateBtn = document.getElementById('generate-btn');
+    const spinner     = document.getElementById('spinner');
+    const spinnerLabel= document.getElementById('spinner-label');
+    const result      = document.getElementById('result');
+    const errorBox    = document.getElementById('error-box');
+    const description = document.getElementById('description');
+    const resultImg   = document.getElementById('result-img');
+    const downloadLink= document.getElementById('download-link');
+
+    let selectedFile = null;
+
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file) setFile(file);
+    });
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) setFile(fileInput.files[0]);
+    });
+
+    function setFile(file) {
+      selectedFile = file;
+      previewImg.src = URL.createObjectURL(file);
+      previewWrap.style.display = 'block';
+      generateBtn.disabled = false;
+      result.style.display = 'none';
+      errorBox.style.display = 'none';
+    }
+
+    generateBtn.addEventListener('click', async () => {
+      if (!selectedFile) return;
+
+      generateBtn.disabled = true;
+      spinner.style.display = 'flex';
+      spinnerLabel.textContent = 'Analyzing image with LLaVA...';
+      result.style.display = 'none';
+      errorBox.style.display = 'none';
+
+      const formData = new FormData();
+      formData.append('image', selectedFile);
+
+      try {
+        setTimeout(() => { spinnerLabel.textContent = 'Generating avatar with Stable Diffusion...'; }, 4000);
+
+        const res = await fetch('/generate', { method: 'POST', body: formData });
+        const data = await res.json();
+
+        if (!res.ok) {
+          errorBox.textContent = data.error || 'Something went wrong.';
+          errorBox.style.display = 'block';
+        } else {
+          description.textContent = data.description;
+          resultImg.src = data.image_url;
+          downloadLink.href = data.image_url;
+          result.style.display = 'block';
+        }
+      } catch (err) {
+        errorBox.textContent = 'Network error: ' + err.message;
+        errorBox.style.display = 'block';
+      } finally {
+        spinner.style.display = 'none';
+        generateBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
