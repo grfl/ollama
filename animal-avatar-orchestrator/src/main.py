@@ -1,34 +1,32 @@
 import os
 import sys
 from core.vision_agent import identify_animal
-# from core.artist_agent import create_avatar
+from core.artist_agent import ArtistAgent
 
 def run_workflow(image_name):
-    """
-    Manages the flow from image analysis to avatar generation.
-    """
+    # Paths
     input_path = os.path.join("input", image_name)
-    output_path = os.path.join("output", f"avatar_{image_name}")
+    output_filename = f"avatar_{os.path.splitext(image_name)[0]}.png"
+    output_path = os.path.join("output", output_filename)
 
     if not os.path.exists(input_path):
-        print(f"[Error] Input file '{image_name}' not found in /input folder.")
+        print(f"[Error] File {input_path} not found.")
         return
 
-    print(f"[*] Starting workflow for: {image_name}")
+    # Phase 1: Vision
+    print("[Orchestrator] Starting Vision Phase...")
+    animal_features = identify_animal(input_path)
+    print(f"[Orchestrator] Features extracted: {animal_features}")
 
-    # Step 1: Vision Analysis
-    print("[*] Calling Vision Agent...")
-    animal_data = identify_animal(input_path)
-    print(f"[+] Animal features detected: {animal_data}")
+    # Phase 2: Art Generation
+    print("[Orchestrator] Starting Artist Phase...")
+    artist = ArtistAgent()
+    artist.generate_avatar(animal_features, output_path)
 
-    # Step 2: Generation (Placeholder for now)
-    print("[*] Initializing Artist Agent...")
-    # create_avatar(animal_data, output_path)
-    
-    print("[!] Workflow finished successfully.")
+    print(f"[!] Workflow Complete. Check your avatar in: {output_path}")
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("[Usage] python3 src/main.py <image_filename>")
+        print("[Usage] python3 src/main.py <image_name>")
     else:
         run_workflow(sys.argv[1])
